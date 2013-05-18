@@ -95,6 +95,7 @@ void open_wav(char *filename, struct audio **ret, struct audio_meta *meta) {
       channel = channel->next;
     }
   }
+  free(wav);
   return;
 }
 
@@ -176,6 +177,7 @@ void visualize (double *signal, int sig_len, int local_len, int refresh_rate) {
     usleep(1000 * refresh_rate);
   }
   endwin();
+  fftw_free(in); fftw_free(out);
   free(bars);
   return;
 }
@@ -188,6 +190,5 @@ int main(int argc, char *argv[]) {
   calc_rates(meta.sample_rate, &refresh_rate, &local_len);
   visualize(audio->signal, meta.size / meta.num_channels / meta.bits_per_sample * 8,
             local_len, refresh_rate);
-  
   return 0;
 }
