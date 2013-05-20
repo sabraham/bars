@@ -2,7 +2,6 @@
 
 ## Demo
 [![ScreenShot](https://raw.github.com/sabraham/bars/master/demo.png)](http://www.youtube.com/watch?v=3TJLPljMV8k)
-http://www.youtube.com/watch?v=3TJLPljMV8k
 
 http://www.youtube.com/watch?v=3TJLPljMV8k
 
