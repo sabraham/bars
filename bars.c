@@ -9,6 +9,10 @@
 
 typedef char byte;
 
+/*******************************************************************************
+ * struct to store audio meta data
+ * currently storing relevant information from WAV files.
+ ******************************************************************************/
 struct audio_meta {
   uint32_t sample_rate;
   int num_channels;
@@ -16,6 +20,10 @@ struct audio_meta {
   uint32_t size;
 };
 
+/*******************************************************************************
+ * struct to point to audio data
+ * linked list, where next points to the next channel
+ ******************************************************************************/
 struct audio {
   double *signal;
   struct audio *next;
@@ -29,6 +37,9 @@ void push_audio (struct audio **head, double *signal) {
   return;
 }
 
+/*******************************************************************************
+ * helper functions
+ ******************************************************************************/
 /* Standard C Function: Greatest Common Divisor */
 /* from http://www.math.wustl.edu/~victor/mfmm/compaa/gcd.c */
 unsigned int gcd (unsigned int a, unsigned int b)
@@ -68,6 +79,14 @@ static double bytes_to_double(byte *first_byte, int num_bytes) {
   return ret / pow(2, num_bytes * 8 - 1);
 }
 
+/*******************************************************************************
+ * open a WAV file
+ *
+ * Input:
+ * 1- char *filename :
+ * 2- struct audio **ret : pointer to head of audio channels to be returned
+ * 3- struct *audio_meta *meta: meta information to be returned
+ ******************************************************************************/
 void open_wav(char *filename, struct audio **ret, struct audio_meta *meta) {
   byte *wav = read_file_bytes(filename);
   meta->num_channels = *((uint16_t *) (wav + 22));
@@ -99,7 +118,18 @@ void open_wav(char *filename, struct audio **ret, struct audio_meta *meta) {
   return;
 }
 
-// in, out, signal length == sig_len
+/*******************************************************************************
+ * perform a Fast Fourier Transform and bin the results
+ *
+ * Input:
+ * 1- double *signal : pointer to audio data to transform
+ * 2- int sig_len : length of signal
+ * 3- fftw_plan : the FFT plan
+ * 4- fftw_complex *in : pointer to FFT input
+ * 5- fftw_complex *out : pointer to FFT output, should be same length as input
+ * 6- int *bins: array of ints returned
+ * 7- int num_bins : number of bins
+ ******************************************************************************/
 void fft_and_bin (double *signal, int sig_len,
                   fftw_plan p, fftw_complex *in, fftw_complex *out,
                   int *bins, int num_bins) {
@@ -122,6 +152,13 @@ void fft_and_bin (double *signal, int sig_len,
   return;
 }
 
+/*******************************************************************************
+ * logic of what to do for row j, given the bar is bar_height
+ *
+ * Input:
+ * 1- int j : row height j
+ * 2- int bar_height : bar height
+ ******************************************************************************/
 void paint_box (int j, int bar_height) {
   if (j <= bar_height) {
     attron(A_REVERSE);
@@ -132,6 +169,13 @@ void paint_box (int j, int bar_height) {
   return;
 }
 
+/*******************************************************************************
+ * update screen
+ *
+ * Input:
+ * 1- int *bars : array to plot (bars[i] is the height of bin i)
+ * 2- int num_bars : number of bars
+ ******************************************************************************/
 void refresh_bars (int *bars, int num_bars) {
   int scr_width, scr_height;
   getmaxyx(stdscr, scr_height, scr_width);
@@ -145,6 +189,14 @@ void refresh_bars (int *bars, int num_bars) {
   return;
 }
 
+/*******************************************************************************
+ * calculate the refresh rate and the number of samples on which to FFT
+ *
+ * Input:
+ * 1- int sample_rate : number of samples per second
+ * 2- int *refresh_rate : return the screen refresh rate (in milliseconds)
+ * 3- int *local_len : return the number of samples in each refresh
+ ******************************************************************************/
 void calc_rates (int sample_rate, int *refresh_rate, int *local_len) {
   int g = gcd(1000, sample_rate);
   *local_len = sample_rate / g;
@@ -156,6 +208,16 @@ void calc_rates (int sample_rate, int *refresh_rate, int *local_len) {
   return;
 }
 
+/*******************************************************************************
+ * visualize an audio stream
+ *
+ * Input:
+ * 1- double *signal : PCM array
+ * 2- int sig_len : length of signal
+ * 3- int local_len : how many samples in each refresh of the screen (ie, the
+ * number of samples on which to FFT each time)
+ * 4- int refresh_rate : number of milliseconds between each screen refresh
+ ******************************************************************************/
 void visualize (double *signal, int sig_len, int local_len, int refresh_rate) {
   fftw_complex *in  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * local_len);
   fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * local_len);
@@ -182,6 +244,11 @@ void visualize (double *signal, int sig_len, int local_len, int refresh_rate) {
   return;
 }
 
+/*******************************************************************************
+ * main - glue
+ *
+ * Usage: ./bars filename.wav
+ ******************************************************************************/
 int main(int argc, char *argv[]) {
   struct audio_meta meta;
   struct audio *audio;
